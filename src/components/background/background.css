@@ -1,0 +1,14 @@
+.background {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  background-image: url("/river_dark.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.25;
+  z-index: -99;
+  top: 0;
+  left: 0;
+  transition: opacity 2s ease-in-out();
+}

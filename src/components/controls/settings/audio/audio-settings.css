@@ -1,0 +1,29 @@
+.SelectContent {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+.SelectTrigger {
+  margin-top: 0.5rem !important;
+  width: 6rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.label > button {
+  height: 16px;
+  width: 16px;
+}
+
+.slider-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 8px;
+  margin-bottom: 1rem;
+}
