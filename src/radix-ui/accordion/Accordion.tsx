@@ -3,7 +3,6 @@ import classNames from "classnames";
 import React, { LegacyRef } from "react";
 import { HiOutlineChevronDown } from "react-icons/hi";
 import "./accordion.css";
-import useTheme from "@redux/theme/useTheme";
 
 type Props = {
   children?: React.ReactNode | React.ReactNode[];
@@ -11,8 +10,6 @@ type Props = {
 }
 
 const AccordionTrigger = React.forwardRef(({ children, className, ...props }: Props, forwardedRef) => {
-  const { theme } = useTheme();
-
   return (
     <Accordion.Header className="AccordionHeader">
       <Accordion.Trigger
