@@ -20,7 +20,7 @@ export default (props: Props) => {
     const colors: string[] = [];
     getColorPalette(background, 64)
       .then((palette) => palette.forEach((rgb) => colors.push(getClosestRadixColor(rgb))))
-      .then(() => {setTheme(getArrayMode(colors)); console.log(getArrayMode(colors))});
+      .then(() => {setTheme(getArrayMode(colors)); });
   }, [background]);
 
   React.useEffect(() => {

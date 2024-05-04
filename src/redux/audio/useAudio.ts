@@ -9,6 +9,6 @@ export default () => {
     setAudio: {
       setSample: (src: string) => dispatch(audioReducer.actions.setSample(src)),
       setVolume: (value: number) => dispatch(audioReducer.actions.setVolume(value)),
-      toggleEnabled: () => dispatch(audioReducer.actions.toggleEnabled())
+      setEnabled: (value: boolean) => dispatch(audioReducer.actions.setEnabled(value))
     }};
 }

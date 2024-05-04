@@ -7,8 +7,8 @@ interface AudioState {
 }
 
 const initialState: AudioState = {
-  volume: 0.02,
-  sample: "/audio/old-timey_c4.ogg",
+  volume: 50,
+  sample: "/audio/soft-bell_c5.ogg",
   isEnabled: false
 }
 
@@ -22,8 +22,8 @@ export const audio = createSlice({
     setSample: (state, action: PayloadAction<string>) => {
       state.sample = action.payload;
     },
-    toggleEnabled: (state) => {
-      state.isEnabled = !state.isEnabled;
+    setEnabled: (state, action: PayloadAction<boolean>) => {
+      state.isEnabled = action.payload;
     }
   },
 })

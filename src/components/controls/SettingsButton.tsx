@@ -28,14 +28,18 @@ export default () => {
         open={isOpen}
         direction={breakpoint < 768 ? "bottom" : "left"}
         onClose={toggleDrawer}
-        style={{width: breakpoint < 768 ? "100vw" : "500px", overflowY: "auto"}}
+        style={{width: breakpoint < 768 ? "87vw" : "500px", overflowY: "auto"}}
       >
-        <h2>Settings</h2>
+        <h2>Polyrhythm Visualizer - Settings</h2>
         <Accordion.Root className="AccordionRoot" type="multiple">
           <BackgroundSelector />
           <PolyCanvasSettings />
           <AudioSettings />
         </Accordion.Root>
+        <p>
+          Designed and developed by <a href="https://vladimirdamian.dev" target="_blank">Vladimir Damian</a>.
+          Inspired by <a href="https://www.youtube.com/watch?v=SthcxWPXG_E" target="_blank">Virtual Riot</a>.
+        </p>
       </Drawer>
     </>
   )

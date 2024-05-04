@@ -5,7 +5,7 @@ interface BackgroundState {
 }
 
 const initialState: BackgroundState = {
-  value: "/river_dark.jpg",
+  value: "/backgrounds/river_dark.jpg",
 }
 
 export const background = createSlice({

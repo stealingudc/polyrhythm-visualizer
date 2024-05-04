@@ -6,6 +6,16 @@ import "./audio-settings.css";
 import "@radix-ui-local/accordion/accordion.css";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { IoInformationCircleOutline } from "react-icons/io5";
+import React from "react";
+import useAudio from "@redux/audio/useAudio";
+
+type AudioSamplesJSON = {
+  section: string,
+  samples: {
+    name: string,
+    path: string
+  }[]
+}[];
 
 type InfoProps = {
   children: string | string[] | React.ReactNode | React.ReactNode[];
@@ -31,6 +41,16 @@ const Info = ({ children }: InfoProps) => {
 
 export default () => {
   const { theme } = useTheme();
+  const { audio, setAudio } = useAudio();
+
+  const [audioSamples, setAudioSamples] = React.useState<AudioSamplesJSON>([]);
+  React.useEffect(() => {
+    fetch("/audio.json")
+      .then(res => res.json())
+      .then((json) => {
+        setAudioSamples(json satisfies AudioSamplesJSON);
+      });
+  }, []);
 
   return (
     <>
@@ -46,28 +66,33 @@ export default () => {
             <span>Sample</span>
             <Info>The soundbyte that plays on every half-arc span end.</Info>
           </div>
-          <Select.Root defaultValue="0">
-            <Select.Trigger className="SelectTrigger"/>
+          <Select.Root defaultValue="/audio/soft-bell_c5.ogg" onValueChange={(value) => setAudio.setSample(value)}>
+            <Select.Trigger className="SelectTrigger" />
             <Select.Content className="SelectContent">
-              <Select.Group>
-                <Select.Label>Synths</Select.Label>
-                <Select.Item value="0">Old Timey</Select.Item>
-                <Select.Item value="1" disabled>Retro (Coming Soon!)</Select.Item>
-              </Select.Group>
-              <Select.Separator />
-              <Select.Group>
-                <Select.Label>Bells</Select.Label>
-                <Select.Item value="2">Calm</Select.Item>
-              </Select.Group>
+              {audioSamples.map((json, index) => {
+                return (
+                  <div key={`audio-group_${index}`}>
+                    <Select.Group key={`audio-json_${index}`}>
+                      <Select.Label>{json.section}</Select.Label>
+                      {
+                        json.samples.map((sample, i) =>
+                          <Select.Item key={`sample_${index + i}`} value={sample.path} >{sample.name}</Select.Item>
+                        )
+                      }
+                    </Select.Group>
+                    {index !== audioSamples.length - 1 ? <Select.Separator /> : null}
+                  </div>
+                )
+              })}
             </Select.Content>
           </Select.Root>
           <div className="label">
             <span>Volume</span>
           </div>
-        <div className="slider-container">
-          <Slider min={1} max={100} defaultValue={[50]} />
-          <span>{50}%</span>
-        </div>
+          <div className="slider-container">
+            <Slider min={1} max={100} defaultValue={[50]} onValueChange={(value) => {setAudio.setVolume(value[0])}} />
+            <span>{audio.volume}%</span>
+          </div>
         </Accordion.Content>
       </Accordion.Item>
     </>

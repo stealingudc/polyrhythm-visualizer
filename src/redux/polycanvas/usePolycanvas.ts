@@ -12,6 +12,9 @@ export default () => {
       dispatch(polycanvasReducer.actions.setArcDistance(distance)),
     alpha: (value: number) => {
       dispatch(polycanvasReducer.actions.setArcAlpha(value))
+    },
+    nextImpactTime: (value: number) => {
+      dispatch(polycanvasReducer.actions.setNextImpactTime(value))
     }
   };
 
@@ -31,4 +34,3 @@ export default () => {
 
   return { arc, setArc, speed, setSpeed, point, setPoint };
 }
-

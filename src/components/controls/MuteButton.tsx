@@ -1,12 +1,12 @@
-import React from "react"
 import { PiSpeakerHigh, PiSpeakerSlash } from "react-icons/pi";
 import "./controls.css"
+import useAudio from "@redux/audio/useAudio";
 
 export default () => {
-  const [isEnabled, setIsEnabled] = React.useState<boolean>(false);
+  const { audio, setAudio } = useAudio();
   return(
-    <button className="control-button" onClick={() => setIsEnabled(!isEnabled)}>
-      {isEnabled ? <PiSpeakerHigh size={"80%"} /> : <PiSpeakerSlash size={"80%"} />}
+    <button className="control-button" onClick={() => {setAudio.setEnabled(!audio.isEnabled)}}>
+      {audio.isEnabled ? <PiSpeakerHigh size={"80%"} /> : <PiSpeakerSlash size={"80%"} />}
     </button>
   )
 

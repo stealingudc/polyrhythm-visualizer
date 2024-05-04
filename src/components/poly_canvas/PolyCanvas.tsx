@@ -1,9 +1,8 @@
-import usePolycanvas from "@redux/polycanvas/usePolycanvas";
 import useAnimationFrame from "../../hooks/useAnimationFrame";
 import "./poly_canvas.css";
 import React from "react";
 import useAudio from "@redux/audio/useAudio";
-import * as Tone from "tone";
+import { usePolycanvas } from "@redux/polycanvas/polycanvas";
 
 type Coords2D = {
   x: number;
@@ -16,68 +15,11 @@ type Canvas = {
   end: Coords2D;
   length: number;
 
+  width: number;
+  height: number;
+
   strokeStyle: CanvasRenderingContext2D['strokeStyle'];
   lineWidth: CanvasRenderingContext2D['lineWidth'];
-}
-
-type Color = {
-  red: number;
-  green: number;
-  blue: number;
-  alpha: number;
-}
-
-type Arc = {
-  color: Color;
-  velocity: number;
-}
-
-type SettingsState = {
-  arc: {
-    arcs: Arc[];
-    distance: number;
-    alpha: number;
-  },
-  speed: {
-    loops: number;
-    timeframeSeconds: number;
-  },
-  point: {
-    radius: number;
-  },
-  audio: {
-    sample: string;
-    volume: number;
-    isEnabled: boolean;
-  }
-}
-
-type SettingsAction = {
-  type: "set_arcs";
-  payload: Arc[];
-} | {
-  type: "set_arcDistance";
-  payload: number;
-} | {
-  type: "set_alpha";
-  payload: number;
-} | {
-  type: "set_loops";
-  payload: number;
-} | {
-  type: "set_timeframeSeconds";
-  payload: number;
-} | {
-  type: "set_pointRadius";
-  payload: number;
-} | {
-  type: "set_sample";
-  payload: string;
-} | {
-  type: "set_volume";
-  payload: number;
-} | {
-  type: "toggle_audioEnabled";
 }
 
 const canvasConfig = {
@@ -85,100 +27,86 @@ const canvasConfig = {
   lineWidth: 6
 }
 
-const settingsReducer = (state: SettingsState, action: SettingsAction) => {
-  switch (action.type) {
-    case ("set_arcs"): {
-      state.arc.arcs = action.payload;
-      return state;
-    }
-    case ("set_arcDistance"): {
-      state.arc.distance = action.payload;
-      return state;
-    }
-    case ("set_alpha"): {
-      state.arc.alpha = action.payload;
-      return state;
-    }
-    case ("set_loops"): {
-      state.speed.loops = action.payload;
-      return state;
-    }
-    case ("set_timeframeSeconds"): {
-      state.speed.timeframeSeconds = action.payload;
-      return state;
-    }
-    case ("set_pointRadius"): {
-      state.point.radius = action.payload;
-      return state;
-    }
-    case ("set_sample"): {
-      state.audio.sample = action.payload;
-      return state;
-    }
-    case ("set_volume"): {
-      state.audio.volume = action.payload;
-      return state;
-    }
-    case ("toggle_audioEnabled"): {
-      state.audio.isEnabled = !state.audio.isEnabled;
-      return state;
-    }
-  }
-}
+var ctx: CanvasRenderingContext2D | null;
+var canvas: Canvas;
+
 
 export default () => {
   const ref = React.createRef<HTMLCanvasElement>();
-  var ctx: CanvasRenderingContext2D | null;
-  var canvas: Canvas;
-  var startTime: number;
-  var currentTime: number;
-  var elapsedTime: number;
-  var context: AudioContext;
+  var currentTime: number = performance.now();
+  var elapsedTime: number = performance.now();
 
-  const { arc, speed, point } = usePolycanvas();
-  const { audio } = useAudio();
+  const [startTime, _] = React.useState<number>(performance.now());
 
-  const updateArcs = (arcCount: number) => {
-    const _arcs = [];
-    for (var i = 0; i < arcCount; i++) {
-      _arcs.push(
-        { color: { red: 255, green: 255, blue: 255, alpha: arc.alpha }, velocity: (4 * Math.PI * (speed.loops - i)) / speed.timeframeSeconds }
-      );
+  const { arc, arcs, point, points, settings } = usePolycanvas();
+  const audioSettings = useAudio();
+
+  const [audios, setAudios] = React.useState<HTMLAudioElement[]>([]);
+
+  const getAudio = (count: number) => {
+    const audios: HTMLAudioElement[] = [];
+    for (var i = 0; i < count; i++) {
+      const audio = new Audio();
+      audio.src = audioSettings.audio.sample;
+      audio.volume = audioSettings.audio.volume / 100;
+      audio.preservesPitch = false;
+      audio.playbackRate = 2 ** ((60 + i - 60) / 12);
+      audios.push(audio);
     }
-    return _arcs;
+    return audios;
+  };
+
+  const calculateImpactTime = (currentImpactTime: number, velocity: number) => {
+    return currentImpactTime + (Math.PI / velocity) * 1000;
   }
 
-  const loadSample = () => fetch("/audio/old-timey_c4.ogg")
-    .then(res => res.arrayBuffer())
-    .then(buffer => context.decodeAudioData(buffer));
+  const getPointPosition = (index: number): Coords2D => {
+    const initialArcRadius = canvas.length * settings.arc.distance;
+    const spacing = (canvas.length / 2 - initialArcRadius) / arcs.length;
+    const radius = initialArcRadius + (index * spacing);
 
-  const [settings, dispatch] = React.useReducer(settingsReducer,
-    {
-      arc: {
-        arcs: updateArcs(arc.count),
-        distance: arc.distance,
-        alpha: arc.alpha
-      },
-      speed: {
-        loops: speed.loops,
-        timeframeSeconds: speed.timeframeSeconds
-      },
-      point: {
-        radius: point.radius
-      },
-      audio: {
-        sample: audio.sample,
-        volume: audio.volume,
-        isEnabled: audio.isEnabled
+    const distance = Math.PI + (elapsedTime * arcs[index].velocity);
+    const sinDistance = Math.sin(distance);
+    const x = canvas.center.x + radius * Math.cos(distance);
+    const y = canvas.center.y + radius * sinDistance;
+
+    return { x, y };
+  }
+
+  const makeArcs = (arcCount: number): void => {
+    const _arcs = [];
+    for (var i = 0; i < arcCount; i++) {
+      const velocity = (4 * Math.PI * (settings.speed.loops - i)) / settings.speed.timeframeSeconds;
+      _arcs.push({
+        color: { r: 255, g: 255, b: 255, a: 0.3 },
+        velocity,
+        nextImpactTime: calculateImpactTime(startTime, velocity),
+      });
+    }
+    arc.setArcs(_arcs);
+  }
+
+  const makePoints = (): void => {
+    const _points = [];
+    if (canvas) {
+      for (var i = 0; i < arcs.length; i++) {
+        const distance = Math.PI + (elapsedTime * arcs[i].velocity);
+        const position = getPointPosition(i);
+
+        _points.push({
+          radius: 0.0065,
+          position,
+          distanceOffset: distance
+        })
       }
-    });
+    }
+    point.setPoints(_points);
+  }
 
   React.useEffect(() => {
-    startTime = performance.now();
-    elapsedTime = performance.now();
+    makeArcs(10);
 
-    context = new AudioContext();
-
+    setAudios(getAudio(arcs.length));
 
     if (ref.current) {
       ctx = ref.current?.getContext("2d");
@@ -199,9 +127,12 @@ export default () => {
         y: ref.current.height / 2
       };
       const length = end.x;
+      const width = ref.current.width;
+      const height = ref.current.height;
 
       canvas = {
         center, start, end, length,
+        width, height,
         strokeStyle: canvasConfig.strokeStyle,
         lineWidth: canvasConfig.lineWidth,
       }
@@ -209,18 +140,18 @@ export default () => {
   }, []);
 
   React.useEffect(() => {
-    dispatch({ type: "set_arcDistance", payload: arc.distance });
-    dispatch({ type: "set_alpha", payload: arc.alpha });
-    dispatch({ type: "set_loops", payload: speed.loops });
-    dispatch({ type: "set_timeframeSeconds", payload: speed.timeframeSeconds });
-    dispatch({ type: "set_pointRadius", payload: point.radius });
-    const _arcs = updateArcs(arc.count);
-    dispatch({ type: "set_arcs", payload: _arcs });
-  }, [
-    arc.count, arc.distance, arc.alpha,
-    speed.loops, speed.timeframeSeconds,
-    point.radius
-  ]);
+    if(arcs.length !== 0)
+    makeArcs(arcs.length);
+  }, [settings.speed.timeframeSeconds, settings.speed.loops])
+
+  React.useEffect(() => {
+    makePoints();
+    setAudios(getAudio(arcs.length))
+  }, [arcs.length]);
+
+  React.useEffect(() => {
+    setAudios(getAudio(arcs.length))
+  }, [audioSettings.audio.sample, audioSettings.audio.volume]);
 
   const drawLine = () => {
     if (canvas && ctx) {
@@ -238,68 +169,76 @@ export default () => {
   const drawArcs = () => {
     if (canvas && ctx) {
       const initialArcRadius = canvas.length * settings.arc.distance;
-      const spacing = (canvas.length / 2 - initialArcRadius) / settings.arc.arcs.length;
+      const spacing = (canvas.length / 2 - initialArcRadius) / arcs.length;
 
-      settings.arc.arcs.forEach((arc, index) => {
+      arcs.forEach((arc, index) => {
         if (ctx) {
           const radius = initialArcRadius + (index * spacing);
           ctx.beginPath();
           ctx.arc(canvas.center.x, canvas.center.y, radius, Math.PI * 2, 0);
 
-          ctx.strokeStyle = `rgba(${arc.color.red}, ${arc.color.green},
-            ${arc.color.blue}, ${arc.color.alpha})`;
+          ctx.strokeStyle = `rgba(${arc.color.r}, ${arc.color.g},
+            ${arc.color.b}, ${arc.color.a})`;
 
           ctx.lineWidth = ctx.lineWidth;
 
           ctx.stroke();
-          drawCircle(index, radius, arc.velocity);
         }
       });
-
     }
-    // console.log(arcs)
   }
 
-  const drawCircle = (index: number, radius: number, velocity: number) => {
+  const drawPoints = () => {
     if (canvas && ctx) {
       ctx.beginPath();
       ctx.fillStyle = "white";
 
-      const distance = Math.PI + (elapsedTime * velocity);
-      const sinDistance = Math.sin(distance);
-      const arcX = canvas.center.x + radius * Math.cos(distance);
-      const arcY = canvas.center.y + radius * sinDistance;
+      points.forEach((_point, index) => {
+        const position = getPointPosition(index);
+        point.setProperty({ index, key: "position", value: position });
+        if (canvas && ctx) {
+          ctx.beginPath();
+          ctx.fillStyle = "white";
+          ctx.arc(_point.position.x, _point.position.y, canvas.length * _point.radius, 0, Math.PI * 2);
+          ctx.fill();
+          if (index !== 0) {
+            if (canvas.center.y - index < _point.position.y && _point.position.y < canvas.center.y + index) {
+              arc.setProperty({ index, key: "color", value: { r: 255, g: 255, b: 255, a: 1 } });
+              if (audioSettings.audio.isEnabled) {
+                audios[index].play().catch(() => { });
+                if (!audios[index].ended && audios[index].currentTime > 0.5) {
+                  audios[index].pause();
+                  audios[index].currentTime = 0;
+                  audios[index].play().catch(() => { });
+                }
+              }
+            }
+          } else {
+            if (canvas.center.y - 1 < _point.position.y && _point.position.y < canvas.center.y + 1) {
+              arc.setProperty({ index, key: "color", value: { r: 255, g: 255, b: 255, a: 1 } });
+              if (audioSettings.audio.isEnabled) {
+                audios[index].play().catch(() => { });
+                if (!audios[index].ended && audios[index].currentTime > 0.5) {
+                  audios[index].pause();
+                  audios[index].currentTime = 0;
+                  audios[index].play().catch(() => { });
+                }
+              }
+              audioSettings.audio.isEnabled ? audios[index].play() : null;
+            }
+          }
 
-      ctx.arc(arcX, arcY, canvas.length * 0.0065, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (-0.01 < sinDistance && sinDistance < 0.01) {
-        settings.arc.arcs[index].color.alpha = 1.0;
-        loadSample().then(sample => {
-          const gain = context.createGain();
-          gain.gain.value = 0.1;
-          gain.connect(context.destination);
-          const source = context.createBufferSource();
-          source.buffer = sample;
-          // source.playbackRate.value = 2 ** ((60 - index) / 12);
-          source.connect(gain);
-          source.start(0);
-        })
+          if (arcs[index].color.a > 0.3) {
+            arc.setProperty({ index, key: "color", value: { r: 255, g: 255, b: 255, a: arcs[index].color.a - 0.025 } });
+          }
+        }
       }
-
-      if (settings.arc.arcs[index].color.alpha > settings.arc.alpha) {
-        settings.arc.arcs[index].color.alpha -= 0.025;
-      }
-
+      )
       ctx.stroke();
-    }
+    };
   }
 
-  const clearCanvas = () => {
-    if (ctx) {
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    }
-  }
+  const clearCanvas = () => ctx ? ctx.clearRect(0, 0, window.innerWidth, window.innerHeight) : null;
 
   useAnimationFrame(() => {
     // Used to calculate distance between circles. Don't remove.
@@ -310,9 +249,13 @@ export default () => {
 
     drawLine();
     drawArcs();
+    drawPoints();
   })
 
   return (
-    <canvas ref={ref} className="poly-canvas"></canvas>
+    <>
+      <canvas ref={ref} className="poly-canvas"></canvas>
+      {/* Elapsed Time: {elapsedTime} */}
+    </>
   )
 }

@@ -1,3 +1,20 @@
 [
-  {"Old Timey": "/audio/old-timey_c4.ogg"},
+  {
+    "section": "Bells",
+    "samples": [
+      {
+        "name": "Soft",
+        "path": "/audio/soft-bell_c5.ogg"
+      }
+    ]
+  },
+  {
+    "section": "Synths",
+    "samples": [
+      {
+        "name": "Old Timey",
+        "path": "/audio/old-timey_c4.ogg"
+      }
+    ]
+  }
 ]

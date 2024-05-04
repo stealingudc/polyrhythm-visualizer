@@ -6,7 +6,7 @@ export type RGB = {
 
 const buildRGB = (data: ImageData["data"], blockSize?: number): RGB[] => {
   const values: RGB[] = [];
-  for (var i = 0; i < data.length; i += 4 * (blockSize ? blockSize : 4)) {
+  for (var i = 0; i < data.length; i += 4 * (blockSize ? blockSize : 512)) {
     const rgb: RGB = {
       r: data[i],
       g: data[i + 1],
